@@ -19,12 +19,10 @@ public class MinerEnemy : MonoBehaviour
     private GameObject player;
 
 
-    [Header("Attacking")]
-    private int attackNumber;
-    private float attackDistance = 5;    
-    public float lightAttackDistance, heavyAttackDistance;
-    public float lightAttackDamage, heavyAttackDamage;
-    public float heavyChance;
+    [Header("Attacking")]    
+    private float attackDistance = 5;
+    public float attackDamage;
+    
 
 
     [Header("AI")]
@@ -52,8 +50,6 @@ public class MinerEnemy : MonoBehaviour
         player = GameObject.Find("Player");
 
         lastPosition = transform.position;
-
-        ChoseAttack();
     }
 
     // Update is called once per frame
@@ -92,22 +88,7 @@ public class MinerEnemy : MonoBehaviour
             LookForPlayer();
         }
         
-    }
-
-    void ChoseAttack()
-    {
-        int index = Random.Range(0, 100);
-        if (index < heavyChance)
-        {
-            attackNumber = 1;
-            attackDistance = heavyAttackDistance;
-        }
-        else
-        {
-            attackNumber = 0;
-            attackDistance = lightAttackDistance;
-        }
-    }
+    }    
 
     void Patrolling()
     {
@@ -171,60 +152,29 @@ public class MinerEnemy : MonoBehaviour
         if (Physics.CheckSphere(transform.position, attackDistance, whatIsPlayer))
         {
             state = State.attacking;
-            AttackPlayer(attackNumber);
+            AttackPlayer();
             //print("attack");
 
         }
 
     }
 
-    void AttackPlayer(int attackNo)
+    void AttackPlayer()
     {
         //print("ATTACK");
-        agent.SetDestination(transform.position);        
-
-        if (attackNo == 0)
-        {
-            LightAttack();
-        }
-        else if (attackNo == 1)
-        {
-            HeavyAttack();
-        }
-    }
-
-    void LightAttack()
-    {
+        agent.SetDestination(transform.position);
         anim.SetInteger("Attacking", 1);
-        
-    }
 
-    void HeavyAttack()
-    {
-        agent.enabled = false;
-        rb.isKinematic = false;
-        rb.AddForce(Vector3.up * 100);
-        anim.SetInteger("Attacking", 2);
-        
     }
 
     void EndAttack()
     {
         state = State.patrolling;
         anim.SetInteger("Attacking", 0);
-        SearchWalkPoint();
-        ChoseAttack();
+        SearchWalkPoint();        
     }
 
-    private void OnCollisionEnter(Collision collision)
-    {
-        if (collision.gameObject.tag == "Ground")
-        {
-            agent.enabled = true;
-            rb.isKinematic = true;
-        }
-    }
-
+    
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
