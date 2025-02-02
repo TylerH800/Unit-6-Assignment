@@ -81,7 +81,7 @@ Rigidbody:
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
   m_UseGravity: 1
-  m_IsKinematic: 0
+  m_IsKinematic: 1
   m_Interpolate: 0
   m_Constraints: 80
   m_CollisionDetection: 0
@@ -119,16 +119,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 96a4af773fdcb3141a0703393ffd2a66, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  lightAttackDistance: 3
-  heavyAttackDistance: 8
-  lightAttackDamage: 0
-  heavyAttackDamage: 0
-  heavyChance: 50
+  attackDamage: 0
+  attackCooldown: 1
   patrolSpeed: 5
   chaseSpeed: 12
   walkPointRange: 20
+  minWaitTime: 3
+  maxWaitTime: 5
   playerFindDistance: 201.3
-  hearRange: 0
+  hearRange: 10
   whatIsGround:
     serializedVersion: 2
     m_Bits: 64
@@ -229,7 +228,8 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 5866666021909216657, guid: 1d76bac381b893c4c9a60fda584f671d, type: 3}
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 8702430246359457498, guid: 1d76bac381b893c4c9a60fda584f671d, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 1d76bac381b893c4c9a60fda584f671d, type: 3}

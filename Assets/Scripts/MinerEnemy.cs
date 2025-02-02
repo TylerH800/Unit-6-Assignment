@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.Rendering;
@@ -8,11 +9,13 @@ public class MinerEnemy : MonoBehaviour
     private enum State
     {
         patrolling,
+        waiting,
         chasing,
         attacking,
         dying
     }
 
+    //references
     private Animator anim;
     private Rigidbody rb;
     private State state;
@@ -22,6 +25,9 @@ public class MinerEnemy : MonoBehaviour
     [Header("Attacking")]    
     private float attackDistance = 5;
     public float attackDamage;
+    private bool inAttack = false;
+    private bool canAttack = true;
+    public float attackCooldown = 1.5f;
     
 
 
@@ -30,14 +36,16 @@ public class MinerEnemy : MonoBehaviour
     public float patrolSpeed, chaseSpeed;
     private bool walkPointSet;
     public float walkPointRange;
+    public float minWaitTime, maxWaitTime;
     private Vector3 walkPoint;
 
     public float playerFindDistance, hearRange;
 
     public LayerMask whatIsGround, whatIsPlayer;
 
+    //animation
     Vector3 lastPosition;
-    float currentSpeed;
+    private float currentSpeed;
 
     
 
@@ -57,11 +65,6 @@ public class MinerEnemy : MonoBehaviour
     {
         StateFinder();
         Animation();
-
-        if (Input.GetKeyDown(KeyCode.Escape))
-        {
-            SearchWalkPoint();
-        }
     }
 
     void Animation()
@@ -75,54 +78,84 @@ public class MinerEnemy : MonoBehaviour
 
     void StateFinder()
     {
-        if (state == State.patrolling)
+        //if not attacking or dying, check for the player
+        if (state != State.attacking && state != State.dying)
         {
-            //print("Patrolling");
-            Patrolling();
             LookForPlayer();
         }
-        if (state == State.chasing)
+
+        //if the player is within attack range, attack them
+        if (Physics.CheckSphere(transform.position, attackDistance, whatIsPlayer))
         {
-            //print("CHasing");
-            Chasing();
-            LookForPlayer();
+            state = State.attacking;            
         }
         
+        switch (state)
+        {
+            case State.patrolling:
+                Patrolling();
+                return;
+
+            case State.chasing:
+                Chasing();
+                return;
+
+            case State.attacking:
+                Attacking();
+                return;
+        }
+
     }    
 
     void Patrolling()
     {
         agent.speed = patrolSpeed;
+        
         if (!walkPointSet)
         {
-            SearchWalkPoint();
-        }
-        else
-        {
-            agent.SetDestination(walkPoint);
+            agent.SetDestination(RandomNavmeshLocation(walkPointRange));
         }
 
+        //if the enemy is at the walkpoint, begin waiting
         Vector3 distanceToWalkpoint = transform.position - walkPoint;
 
         if (distanceToWalkpoint.magnitude < 1f)
         {
-            walkPointSet = false;
+            state = State.waiting;
+            float waitTime = Random.Range(minWaitTime, maxWaitTime);
+            StartCoroutine(Wait(waitTime));
         }
     }
-    
-    void SearchWalkPoint()
+
+    IEnumerator Wait(float seconds) //used when the ai gets to its walk point to give it a short stand still
     {
-        //calculate random point in range
-        float randomZ = Random.Range(-walkPointRange, walkPointRange);
-        float randomX = Random.Range(-walkPointRange, walkPointRange);
-
-        walkPoint = new Vector3(transform.position.x + randomX, transform.position.y, transform.position.z + randomZ);
-
-        if (Physics.Raycast(walkPoint, -transform.up, 2f, whatIsGround))
+        yield return new WaitForSeconds(seconds);
+        if (state == State.waiting)
         {
-            walkPointSet = true;
-        }        
+            walkPointSet = false;
+            state = State.patrolling;
+        }
+        
+    }
 
+    
+    public Vector3 RandomNavmeshLocation(float radius)
+    {
+        //generates random position and adds current position on to it
+        Vector3 randomDirection = Random.insideUnitSphere * radius;
+        randomDirection += transform.position;
+
+        //if the point is on the navmesh, set it to the walkpoint
+        //if not, find the closest point on the navmesh
+        NavMeshHit hit;
+        Vector3 finalPosition = Vector3.zero;
+        if (NavMesh.SamplePosition(randomDirection, out hit, radius, 1))
+        {
+            finalPosition = hit.position;
+        }
+        walkPointSet = true;
+        walkPoint = finalPosition;
+        return finalPosition;
     }
 
     void LookForPlayer()
@@ -130,48 +163,51 @@ public class MinerEnemy : MonoBehaviour
         Vector3 offset = new Vector3(0, 1, 0);
         RaycastHit hit;
 
-        //Debug.DrawRay(transform.position + offset, this.transform.forward, Color.blue);
+        //if the player is within range, or is directly in front of the ai, it will begin to chase the player
         if (Physics.Raycast(transform.position + offset, this.transform.forward, out hit, playerFindDistance, whatIsPlayer))
         {           
-            state = State.chasing;
-            walkPoint = hit.transform.position;
+            state = State.chasing;            
         }
 
         if (Physics.CheckSphere(transform.position, hearRange, whatIsPlayer))
         {            
-            state = State.chasing;
-            walkPoint = player.transform.position;
+            state = State.chasing;   
         }
     }
 
-    void Chasing()
+    void Chasing() //chases the player until it reaches them
     {
         agent.speed = chaseSpeed;
-        agent.SetDestination(walkPoint);
-
-        if (Physics.CheckSphere(transform.position, attackDistance, whatIsPlayer))
-        {
-            state = State.attacking;
-            AttackPlayer();
-            //print("attack");
-
-        }
-
+        agent.SetDestination(player.transform.position);
     }
 
-    void AttackPlayer()
+    void Attacking() //method called to perform and loop attacks
     {
-        //print("ATTACK");
         agent.SetDestination(transform.position);
-        anim.SetInteger("Attacking", 1);
 
+        if (!inAttack && canAttack) //if not currently attacking or in cooldown, start attack animation
+        {
+            anim.SetInteger("Attacking", 1); 
+            //integers are used as I had multiple attacks with multiple methods before,
+            //so I used different integers for different attacks, similar to the death animations
+            
+            canAttack = false;
+        }
     }
 
-    void EndAttack()
+    void EndAttack() //called via an event at the end of each attack animation
+    {        
+        //stops attack anim, starts cooldown and sets ai back to chasing
+        anim.SetInteger("Attacking", 0);             
+        StartCoroutine(AttackCooldown(attackCooldown));
+
+        state = State.chasing;     
+    }
+
+    IEnumerator AttackCooldown(float seconds)
     {
-        state = State.patrolling;
-        anim.SetInteger("Attacking", 0);
-        SearchWalkPoint();        
+        yield return new WaitForSeconds(seconds);
+        canAttack = true;
     }
 
     
