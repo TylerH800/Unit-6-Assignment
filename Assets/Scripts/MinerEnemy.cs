@@ -25,7 +25,6 @@ public class MinerEnemy : MonoBehaviour
     [Header("Attacking")]    
     private float attackDistance = 5;
     public float attackDamage;
-    private bool inAttack = false;
     private bool canAttack = true;
     public float attackCooldown = 1.5f;
     
@@ -185,7 +184,7 @@ public class MinerEnemy : MonoBehaviour
     {
         agent.SetDestination(transform.position);
 
-        if (!inAttack && canAttack) //if not currently attacking or in cooldown, start attack animation
+        if (canAttack) //if not currently attacking or in cooldown, start attack animation
         {
             anim.SetInteger("Attacking", 1); 
             //integers are used as I had multiple attacks with multiple methods before,

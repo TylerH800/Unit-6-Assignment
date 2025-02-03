@@ -1,15 +1,17 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-
-
 public class ThirdPersonMovement : MonoBehaviour
 {
     [Header("Movement and Camera")]
     public float speed = 6;
+    public float acceleration = 5;
+    public float deceleration = 5;  // Added deceleration
     public float sprintSpeed = 6;
     public float turnSmoothTime = 0.1f;
     private float turnSmoothVelocity;
+
+    private bool sprinting;
 
     public CharacterController characterController;
     public Transform cam;
@@ -20,7 +22,7 @@ public class ThirdPersonMovement : MonoBehaviour
 
     public float jumpHeight;
     public float gravity = -9.81f;
-    Vector3 velocity;
+    Vector3 vertVelocity; //used for vertical movement
     public Transform groundCheck;
     public float groundDistance;
     public LayerMask groundMask;
@@ -29,120 +31,130 @@ public class ThirdPersonMovement : MonoBehaviour
     private PlayerInput playerInput;
     private Vector2 input;
 
-    public Animator animator;
+    private Animator animator;
+    private CharacterController cc;
 
-    bool sprinting;
+    private float currentSpeed;
+    private Vector3 lastPosition;
+
 
     private void Start()
-    {        
+    {
         playerInput = GetComponent<PlayerInput>();
+        animator = GetComponent<Animator>();
+        cc = GetComponent<CharacterController>();
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        lastPosition = transform.position;
     }
 
     #region Input
     void OnMove(InputValue inputValue)
     {
         input = inputValue.Get<Vector2>();
+       
     }
 
     void OnJump(InputValue inputValue)
     {
         float jump = inputValue.Get<float>();
-        print("A");
-        print(jump);
-        print(isGrounded);
-        //conditions to jump
         if (jump != 0 && isGrounded)
         {
-            print("b");
             animator.SetBool("Walk", false);
             animator.SetBool("Jump", true);
         }
     }
 
-    void OnSprint(InputValue value, InputAction.CallbackContext context)
+    void GetSprint()
     {
-        if (context.performed)
+        var sprint = playerInput.actions["Sprint"];
+        if (sprint.IsPressed())
         {
-            print("sprinting");
+            sprinting = true;
         }
         else
         {
-            print("not sprinting");
+            sprinting = false;
         }
-
     }
 
     #endregion
-   
 
     void Update()
     {
-        //groundcheck
+        // Ground check
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
-
         HorizontalMovement();
-        VerticalMovement();
-
-       
+        //VerticalMovement();
+        Animation();
+        //GetSprint();
     }
 
-    
+    void Animation()
+    {
+        // Calculate current speed for animation blending
+        currentSpeed = Mathf.Lerp(currentSpeed, (transform.position - lastPosition).magnitude / Time.deltaTime, 0.75f);
+        lastPosition = transform.position;
+        animator.SetFloat("Speed", currentSpeed);
+    }
+
     void HorizontalMovement()
-    {        
+    {
         Vector3 direction = new Vector3(input.x, 0f, input.y).normalized;
+
+        // Determine target speed based on sprinting or walking
+        float targetSpeed = sprinting ? sprintSpeed : speed;
         
-        //if there is horizontal movement
+        // If there's horizontal movement
         if (direction.magnitude >= 0.1f)
         {
-            animator.SetBool("Walk", true);
+            // Smoothly accelerate to the target speed when moving
+            currentSpeed = Mathf.Lerp(currentSpeed, targetSpeed, acceleration * Time.deltaTime);
+        }
+        else
+        {
+            // Smoothly decelerate to zero when there's no input
+            currentSpeed = Mathf.Lerp(currentSpeed, 0f, deceleration * Time.deltaTime);
 
-            //rotates based off of camera rotation
+
+            // Rotate character smoothly based on camera direction
             float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg + cam.eulerAngles.y;
             float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
             transform.rotation = Quaternion.Euler(0f, angle, 0f);
 
+            // Calculate the movement direction
             Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
-
-            speed = sprinting ? sprintSpeed : speed;
-
-            characterController.Move(moveDir.normalized * speed * Time.deltaTime);
-        }
-        else
-        {
-            animator.SetBool("Walk", false);
+            
+            // Move character with the smoothly adjusted speed (acceleration or deceleration applied first)
+            characterController.Move(moveDir.normalized * currentSpeed * Time.deltaTime);
         }
     }
 
     void VerticalMovement()
     {
-        //conditions for landing
-        if (isGrounded && velocity.y <= 0)
+        // Conditions for landing
+        if (isGrounded && vertVelocity.y <= 0)
         {
-            animator.SetBool("Land", true);
-            animator.SetBool("Fall", false);
-            velocity.y = -2f;
-
+            vertVelocity.y = -2f;
             jumping = false;
             landing = true;
         }
 
-        //conditions for falling
-        if (!isGrounded && velocity.y < 0)
+        // Conditions for falling
+        if (!isGrounded && vertVelocity.y < 1)
         {
-            animator.SetBool("Fall", true);
             animator.SetBool("Jump", false);
         }
 
-        velocity.y += gravity * Time.deltaTime;
-        characterController.Move(velocity * Time.deltaTime);
+        vertVelocity.y += gravity * Time.deltaTime;
+        characterController.Move(vertVelocity * Time.deltaTime);
     }
 
     public void DoJump()
     {
-        velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+        vertVelocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
         jumping = true;
     }
 
@@ -150,6 +162,4 @@ public class ThirdPersonMovement : MonoBehaviour
     {
         landing = false;
     }
-
-
 }
