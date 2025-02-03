@@ -54,6 +54,7 @@ public class ThirdPersonMovement : MonoBehaviour
     void OnMove(InputValue inputValue)
     {
         input = inputValue.Get<Vector2>();
+        print(input.magnitude);
        
     }
 
@@ -87,18 +88,13 @@ public class ThirdPersonMovement : MonoBehaviour
         // Ground check
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
         HorizontalMovement();
-        //VerticalMovement();
-        Animation();
-        //GetSprint();
+        VerticalMovement();
+        
+        GetSprint();
+
     }
 
-    void Animation()
-    {
-        // Calculate current speed for animation blending
-        currentSpeed = Mathf.Lerp(currentSpeed, (transform.position - lastPosition).magnitude / Time.deltaTime, 0.75f);
-        lastPosition = transform.position;
-        animator.SetFloat("Speed", currentSpeed);
-    }
+    
 
     void HorizontalMovement()
     {
@@ -110,30 +106,31 @@ public class ThirdPersonMovement : MonoBehaviour
         // If there's horizontal movement
         if (direction.magnitude >= 0.1f)
         {
-            // Smoothly accelerate to the target speed when moving
-            currentSpeed = Mathf.Lerp(currentSpeed, targetSpeed, acceleration * Time.deltaTime);
-        }
-        else
-        {
-            // Smoothly decelerate to zero when there's no input
-            currentSpeed = Mathf.Lerp(currentSpeed, 0f, deceleration * Time.deltaTime);
-
-
-            // Rotate character smoothly based on camera direction
+            animator.SetBool("Walk", true);
+            print(animator.GetBool("Walk"));
             float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg + cam.eulerAngles.y;
             float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
             transform.rotation = Quaternion.Euler(0f, angle, 0f);
 
             // Calculate the movement direction
             Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
-            
             // Move character with the smoothly adjusted speed (acceleration or deceleration applied first)
-            characterController.Move(moveDir.normalized * currentSpeed * Time.deltaTime);
+            characterController.Move(moveDir.normalized * targetSpeed * Time.deltaTime);            
+
         }
+        else
+        {
+            animator.SetBool("Walk", false);
+        }
+
+
     }
 
     void VerticalMovement()
     {
+        vertVelocity.y += gravity * Time.deltaTime;
+        characterController.Move(vertVelocity * Time.deltaTime);
+
         // Conditions for landing
         if (isGrounded && vertVelocity.y <= 0)
         {
@@ -143,13 +140,11 @@ public class ThirdPersonMovement : MonoBehaviour
         }
 
         // Conditions for falling
-        if (!isGrounded && vertVelocity.y < 1)
+        if (!isGrounded && vertVelocity.y < 0)
         {
             animator.SetBool("Jump", false);
         }
 
-        vertVelocity.y += gravity * Time.deltaTime;
-        characterController.Move(vertVelocity * Time.deltaTime);
     }
 
     public void DoJump()
