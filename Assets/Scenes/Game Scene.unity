@@ -1604,7 +1604,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: dfc08c90188302847afb04f628582097, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -2102,6 +2102,7 @@ GameObject:
   - component: {fileID: 1303225887}
   - component: {fileID: 1303225892}
   - component: {fileID: 1303225893}
+  - component: {fileID: 1303225894}
   m_Layer: 3
   m_Name: Player
   m_TagString: Player
@@ -2122,19 +2123,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   speed: 6
-  acceleration: 5
-  deceleration: 5
+  acceleration: 8
   sprintSpeed: 12
+  slowSpeed: 2.5
+  targetSpeed: 0
   turnSmoothTime: 0.3
   characterController: {fileID: 1303225892}
   cam: {fileID: 139045284}
-  jumpHeight: 4
+  jumpHeight: 10
   gravity: -20
   groundCheck: {fileID: 286287542}
   groundDistance: 0.5
   groundMask:
     serializedVersion: 2
     m_Bits: 64
+  isGrounded: 0
 --- !u!95 &1303225890
 Animator:
   serializedVersion: 7
@@ -2229,6 +2232,18 @@ MonoBehaviour:
   m_DefaultActionMap: Player
   m_SplitScreenIndex: -1
   m_Camera: {fileID: 0}
+--- !u!114 &1303225894
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1303225886}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1ba43272eefc384bad2e4707109ab6d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!4 &1331275084 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4562925635644868, guid: a4a01195b684f3b4a82cbeda096d436f, type: 3}
@@ -2917,6 +2932,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: 352623e83614dce4fbad55ce3d28080a, type: 3}
       propertyPath: m_Name
       value: PlayerModel
+      objectReference: {fileID: 0}
+    - target: {fileID: 4167280743394806330, guid: 352623e83614dce4fbad55ce3d28080a, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0.03392226
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
