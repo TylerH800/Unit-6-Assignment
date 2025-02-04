@@ -2,25 +2,34 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+public enum PlayerState
+{
+    moving, //default
+    attacking
+}
+
 public class ThirdPersonMovement : MonoBehaviour
 {
     [Header("Movement and Camera")]
+
+    public static PlayerState playerState = PlayerState.moving;
+
     public float speed = 6;
     public float acceleration = 8;
-    public float sprintSpeed = 6;
-    public float slowSpeed = 2.5f;
-    public float targetSpeed;
+    public float sprintSpeed = 6;    
+    private float targetSpeed;
     public float turnSmoothTime = 0.1f;
     private float turnSmoothVelocity;
 
     private bool sprinting;
 
-    public CharacterController characterController;
+    private Animator animator;
+    private CharacterController cc;
     public Transform cam;
 
     [Header("Jumping and Gravity")]
 
-    private bool falling, landing, slowed;
+    public bool isFalling, isJumping, isGrounded;
 
     public float jumpHeight;
     public float gravity = -9.81f;
@@ -28,17 +37,9 @@ public class ThirdPersonMovement : MonoBehaviour
     public Transform groundCheck;
     public float groundDistance;
     public LayerMask groundMask;
-    public bool isGrounded;
 
     private PlayerInput playerInput;
     private Vector2 input;
-
-    private Animator animator;
-    private CharacterController cc;
-
-    private float currentSpeed;
-    private Vector3 lastPosition;
-
 
 
     private void Start()
@@ -49,23 +50,60 @@ public class ThirdPersonMovement : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-
-        lastPosition = transform.position;
     }
 
     #region Input
     void OnMove(InputValue inputValue)
     {
-        input = inputValue.Get<Vector2>();
+        input = inputValue.Get<Vector2>();        
     }
 
     void OnJump(InputValue inputValue)
     {
-        float jump = inputValue.Get<float>();
-        if (jump != 0 && isGrounded)
+         animator.SetBool("Walk", false);
+         animator.SetBool("Jump", true);
+        isJumping = true;
+    }
+
+    #endregion
+
+    void Update()
+    {
+        VerticalMovement();
+
+        if (playerState == PlayerState.moving)
+        {            
+            HorizontalMovement();
+            GetSprint();
+        }
+    }
+
+
+    #region movement
+    void HorizontalMovement()
+    {
+        Vector3 direction = new Vector3(input.x, 0f, input.y).normalized;
+
+        //when starting or finishing sprinting, the speed change is done smoothly. not neccesary but i prefer the feel of it
+        targetSpeed = Mathf.MoveTowards(targetSpeed, sprinting ? sprintSpeed : speed, acceleration * Time.deltaTime);
+        
+        // If there's horizontal movement
+        if (direction.magnitude >= 0.1f)
+        {
+            animator.SetBool("Walk", true);
+            float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg + cam.eulerAngles.y;
+            float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
+            transform.rotation = Quaternion.Euler(0f, angle, 0f);
+
+            // Calculate the movement direction
+            Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
+
+            cc.Move(moveDir.normalized * targetSpeed * Time.deltaTime);
+
+        }
+        else
         {
             animator.SetBool("Walk", false);
-            animator.SetBool("Jump", true);
         }
     }
 
@@ -84,90 +122,61 @@ public class ThirdPersonMovement : MonoBehaviour
         }
     }
 
-    
-
-    #endregion
-
-    void Update()
+    //called from an animation event, giving a delay for the character to prepare to jump
+    //I did this as I wanted the rock golem to feel heavy, like in some other animations 
+    public void DoJump()
     {
-        // Ground check
-        isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
-        HorizontalMovement();
-        VerticalMovement();
-
-        GetSprint();
-
-
-    }
-
-
-
-    void HorizontalMovement()
-    {
-        Vector3 direction = new Vector3(input.x, 0f, input.y).normalized;
-
-        if (animator.GetBool("Jump") || !isGrounded)
+        if (isGrounded)
         {
-            targetSpeed = Mathf.MoveTowards(targetSpeed, slowSpeed, acceleration * Time.deltaTime);
+            vertVelocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
         }
-        else
-        {
-            targetSpeed = Mathf.MoveTowards(targetSpeed, sprinting ? sprintSpeed : speed, acceleration * Time.deltaTime);
-        }
-
-        // If there's horizontal movement
-        if (direction.magnitude >= 0.1f)
-        {
-            animator.SetBool("Walk", true);
-            float targetAngle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg + cam.eulerAngles.y;
-            float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
-            transform.rotation = Quaternion.Euler(0f, angle, 0f);
-
-            // Calculate the movement direction
-            Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
-
-            characterController.Move(moveDir.normalized * targetSpeed * Time.deltaTime);
-
-        }
-        else
-        {
-            animator.SetBool("Walk", false);
-        }
-
-
     }
 
     void VerticalMovement()
     {
+
+        // Ground check
+        isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
+
+        //gravity
         vertVelocity.y += gravity * Time.deltaTime;
-        characterController.Move(vertVelocity * Time.deltaTime);
+        cc.Move(vertVelocity * Time.deltaTime);
 
         // Conditions for landing
         if (isGrounded && vertVelocity.y <= 0)
         {
             vertVelocity.y = -2f;
         }
-
+     
         // Conditions for falling
-        if (!isGrounded && vertVelocity.y < 0)
-        {
-            print("fall");
-            animator.SetBool("Jump", false);
+        if (!isGrounded && vertVelocity.y < 5 && playerState != PlayerState.attacking)
+        {            
+            //if you are in the attacking state whilst jumping that means you are doing the slam attack,
+            //so this prevents the fall animation from playing in that scenario
             animator.SetBool("Fall", true);
+            isFalling = true;
         }
+
+        //conditions to stop the jumping bool
+        if (!isGrounded && vertVelocity.y < 5)
+        {
+            animator.SetBool("Jump", false);
+            isJumping = false;
+        }
+        
+        //conditions to stop the falling bool
         if (isGrounded)
         {
             animator.SetBool("Fall", false);
+            isFalling = false;
         }
 
-    }
+        //these animator bools are done in a more complicated way than I normally would,
+        //but that was needed to for the slam attack to work consistently and as intended
 
-    public void DoJump()
-    {
-        vertVelocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
     }
-
-    
+    #endregion
 
 
 }
+

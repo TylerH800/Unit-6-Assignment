@@ -3,32 +3,40 @@ using UnityEngine.InputSystem;
 
 public class PlayerCombat : MonoBehaviour
 {
-
+    private PlayerState playerState;
     private Animator anim;
     private ThirdPersonMovement tpm;
     private PlayerInput playerInput;
+    private bool attacking;
 
 
     private void Start()
     {
         anim = GetComponent<Animator>();
-        tpm = new ThirdPersonMovement();
+        tpm = GetComponent<ThirdPersonMovement>();
         playerInput = GetComponent<PlayerInput>();
-
     }
 
     void OnAttack(InputValue inputValue)
     {
-        LightAttack();
-        print("attack");
-
-    }
-    void LightAttack()
-    {
-        if (!tpm.isGrounded)
+        //conditions to do light melee attack
+        if (!tpm.isJumping && !attacking && !tpm.isFalling)
         {
-            return;
+            LightAttack();
         }
+        //conditions to do heavy slam attack
+        else if (tpm.isJumping && !attacking && !tpm.isGrounded)
+        {
+            SlamAttack();
+        }
+    }
+
+    void LightAttack()
+    {        
+        attacking = true;
+        ThirdPersonMovement.playerState = PlayerState.attacking;
+
+        //selects a random animation to do
         int index = Random.Range(0, 3);
         switch (index)
         {
@@ -43,6 +51,14 @@ public class PlayerCombat : MonoBehaviour
                 return;
         }
     }
+
+    void SlamAttack()
+    {
+        ThirdPersonMovement.playerState = PlayerState.attacking;
+        attacking = true;
+
+        anim.SetBool("SlamAttack", true);
+    }
     void ExecuteAttack()
     {
 
@@ -50,5 +66,10 @@ public class PlayerCombat : MonoBehaviour
     void EndAttackAnim()
     {
         anim.SetInteger("LightAttack", 0);
+        anim.SetBool("SlamAttack", false);
+        anim.SetBool("Jump", false);
+        
+        attacking = false;
+        ThirdPersonMovement.playerState = PlayerState.moving;
     }
 }
