@@ -59,10 +59,10 @@ public class ThirdPersonMovement : MonoBehaviour
     }
 
     void OnJump(InputValue inputValue)
-    {
+    {    
          animator.SetBool("Walk", false);
-         animator.SetBool("Jump", true);
-        isJumping = true;
+         animator.SetBool("Jump", true);     
+         isJumping = true;
     }
 
     #endregion
@@ -124,17 +124,16 @@ public class ThirdPersonMovement : MonoBehaviour
 
     //called from an animation event, giving a delay for the character to prepare to jump
     //I did this as I wanted the rock golem to feel heavy, like in some other animations 
-    public void DoJump()
+    public void DoJump(float height)
     {
         if (isGrounded)
-        {
-            vertVelocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+        {       
+            vertVelocity.y = Mathf.Sqrt(height * -2f * gravity);
         }
     }
 
     void VerticalMovement()
-    {
-
+    {    
         // Ground check
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
 
@@ -156,19 +155,26 @@ public class ThirdPersonMovement : MonoBehaviour
             animator.SetBool("Fall", true);
             isFalling = true;
         }
+        //rather than falling, slam
+        else if (!isGrounded && vertVelocity.y < 5 && playerState == PlayerState.attacking)
+        {
+            animator.SetBool("SlamAttack", true);
+        }
 
         //conditions to stop the jumping bool
+        //this cant be done when grounded as the jump is delayed
         if (!isGrounded && vertVelocity.y < 5)
         {
             animator.SetBool("Jump", false);
             isJumping = false;
-        }
+        } 
         
         //conditions to stop the falling bool
         if (isGrounded)
-        {
-            animator.SetBool("Fall", false);
+        {            
+            animator.SetBool("Fall", false);           
             isFalling = false;
+            animator.SetBool("SlamAttack", false);
         }
 
         //these animator bools are done in a more complicated way than I normally would,

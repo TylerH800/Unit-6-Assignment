@@ -1,4 +1,6 @@
+using System.Collections;
 using UnityEngine;
+using UnityEngine.AI;
 using UnityEngine.InputSystem;
 
 public class PlayerCombat : MonoBehaviour
@@ -9,6 +11,15 @@ public class PlayerCombat : MonoBehaviour
     private PlayerInput playerInput;
     private bool attacking;
 
+    public float health;
+    public float lightDmg, heavyDmg;
+    public float lightAttackRange, heavyAttackRange;
+    public float slamJumpHeight;
+    public Transform lightAttackPoint;
+    public Transform heavyAttackPoint;
+    public LayerMask whatIsEnemy;
+    public float deathAnimTime;
+
 
     private void Start()
     {
@@ -17,18 +28,26 @@ public class PlayerCombat : MonoBehaviour
         playerInput = GetComponent<PlayerInput>();
     }
 
-    void OnAttack(InputValue inputValue)
+    void OnAttack()
     {
         //conditions to do light melee attack
         if (!tpm.isJumping && !attacking && !tpm.isFalling)
         {
             LightAttack();
-        }
-        //conditions to do heavy slam attack
-        else if (tpm.isJumping && !attacking && !tpm.isGrounded)
+        }        
+    }
+
+    void OnSlamAttack()
+    {
+        print("slam");
+        if (!tpm.isGrounded || tpm.isJumping || attacking)
         {
-            SlamAttack();
+            return;
         }
+        tpm.DoJump(slamJumpHeight);
+        anim.SetBool("Jump", true);
+        ThirdPersonMovement.playerState = PlayerState.attacking;
+        attacking = true;
     }
 
     void LightAttack()
@@ -52,24 +71,72 @@ public class PlayerCombat : MonoBehaviour
         }
     }
 
-    void SlamAttack()
-    {
-        ThirdPersonMovement.playerState = PlayerState.attacking;
-        attacking = true;
+    void ExecuteLightAttack()
+    {        
+        Collider[] hits = Physics.OverlapSphere(lightAttackPoint.position, lightAttackRange, whatIsEnemy);
+        foreach (Collider hit in hits)
+        {
+            print(hit.gameObject.name);
+            hit.gameObject.GetComponent<MinerEnemy>().TakeDamage(lightDmg);
+        }
+    }    
 
-        anim.SetBool("SlamAttack", true);
-    }
-    void ExecuteAttack()
+    void ExecuteHeavyAttack()
     {
+        Collider[] hits = Physics.OverlapSphere(heavyAttackPoint.position, heavyAttackRange, whatIsEnemy);
+        foreach (Collider hit in hits)
+        {
+            hit.gameObject.GetComponent<MinerEnemy>().TakeDamage(heavyDmg);
 
+        }
     }
+    
     void EndAttackAnim()
     {
-        anim.SetInteger("LightAttack", 0);
-        anim.SetBool("SlamAttack", false);
-        anim.SetBool("Jump", false);
+        anim.SetInteger("LightAttack", 0);        
+        //anim.SetBool("Jump", false);
         
         attacking = false;
         ThirdPersonMovement.playerState = PlayerState.moving;
+    }
+
+    public void TakeDamage(float damage)
+    {
+        health -= damage;
+
+        //if health reaches zero, start the game over process
+        if (health <= 0)
+        {
+            StartCoroutine(GameOver());
+        }
+        else
+        {
+            //play one of the hit animations
+            int index = Random.Range(0, 2);
+            switch (index)
+            {
+                case 0:
+                    anim.SetInteger("Hit", 1);
+                    return;
+                case 1:
+                    anim.SetInteger("Hit", 2);
+                    return;
+            }
+        }
+    }
+
+    IEnumerator GameOver()
+    {
+        anim.SetTrigger("Dying");
+        yield return new WaitForSeconds(deathAnimTime);
+        //display game over
+    }
+
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(lightAttackPoint.position, lightAttackRange);
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(heavyAttackPoint.position, heavyAttackRange);
     }
 }

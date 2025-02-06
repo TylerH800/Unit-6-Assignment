@@ -1,7 +1,6 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
-using UnityEngine.Rendering;
 
 
 public class MinerEnemy : MonoBehaviour
@@ -22,11 +21,15 @@ public class MinerEnemy : MonoBehaviour
     private GameObject player;
 
 
-    [Header("Attacking")]    
+    [Header("Combat")]    
     private float attackDistance = 5;
     public float attackDamage;
     private bool canAttack = true;
     public float attackCooldown = 1.5f;
+    public Transform attackPosition;
+    public float attackHitRange = 1.5f;
+    public float health;
+    public float deathAnimTime;
     
 
 
@@ -194,6 +197,16 @@ public class MinerEnemy : MonoBehaviour
         }
     }
 
+    void ExecuteAttack()
+    {
+        Collider[] hits = Physics.OverlapSphere(attackPosition.position, attackHitRange, whatIsPlayer);
+        foreach (Collider hit in hits)
+        {
+            print(hit.gameObject.name);
+            hit.gameObject.GetComponent<PlayerCombat>().TakeDamage(attackDamage);
+        }
+    }
+
     void EndAttack() //called via an event at the end of each attack animation
     {        
         //stops attack anim, starts cooldown and sets ai back to chasing
@@ -209,12 +222,41 @@ public class MinerEnemy : MonoBehaviour
         canAttack = true;
     }
 
-    
+    public void TakeDamage(float damage)
+    {
+        health -= damage;
+        if (health <= 0)
+        {
+            StartCoroutine(EnemyDies());
+        }
+        else
+        {
+            anim.SetTrigger("Hit");
+        }
+    }
+
+    IEnumerator EnemyDies()
+    {
+        int index = Random.Range(0, 2);
+        if (index == 1)
+        {
+            anim.SetInteger("Dying", 1);
+        }
+        if (index == 2)
+        {
+            anim.SetInteger("Dying", 2);
+        }
+        yield return new WaitForSeconds(deathAnimTime);
+        Destroy(gameObject);
+    }
+
+
     private void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackDistance);
+        
         Gizmos.color = Color.green;
         Gizmos.DrawWireSphere(transform.position, hearRange);
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(attackPosition.position, attackHitRange);
     }
 }
