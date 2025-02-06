@@ -3,8 +3,8 @@ using UnityEngine.UI;
 
 public class Healthbar : MonoBehaviour
 {
-    public Slider healthSlider;
-    public Slider easeHealthSlider;
+    public Slider[] healthSlider;
+    public Slider[] easeHealthSlider;
     public float maxHealth;
     public float health;
     public float lerpSpeed;
@@ -14,17 +14,31 @@ public class Healthbar : MonoBehaviour
         health = maxHealth;
     }
 
-    // Update is called once per frame
     void Update()
     {
-        if (healthSlider.value != health)
+        foreach (Slider slider in healthSlider)
         {
-            healthSlider.value = health;
+            if (slider.value != health)
+            {
+                slider.value = health;
+            }
         }
 
-        if (healthSlider.value != easeHealthSlider.value)
+        foreach (Slider slider in easeHealthSlider)
         {
-            easeHealthSlider.value = Mathf.Lerp(easeHealthSlider.value, health, lerpSpeed * Time.deltaTime);
+            if (slider.value != health)
+            {
+                //slowly lerps the health on the bar down
+                slider.value = Mathf.Lerp(slider.value, health, lerpSpeed * Time.deltaTime);
+
+                //stops the lerp taking ages at the end
+                if ((slider.value - health) < 1)
+                {
+                    slider.value = health;
+                }
+            }
+
+            
         }
     }
 }

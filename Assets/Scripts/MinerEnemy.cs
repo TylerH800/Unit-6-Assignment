@@ -21,14 +21,17 @@ public class MinerEnemy : MonoBehaviour
     private GameObject player;
 
 
-    [Header("Combat")]    
+    [Header("Combat")]
+    public float health, maxHealth;
+    public GameObject healthBarGO;
+    private Healthbar hb;
+
     private float attackDistance = 5;
     public float attackDamage;
     private bool canAttack = true;
     public float attackCooldown = 1.5f;
     public Transform attackPosition;
     public float attackHitRange = 1.5f;
-    public float health;
     public float deathAnimTime;
     
 
@@ -59,6 +62,11 @@ public class MinerEnemy : MonoBehaviour
         agent = GetComponent<NavMeshAgent>();
         player = GameObject.Find("Player");
 
+        hb = healthBarGO.GetComponent<Healthbar>();
+        hb.health = maxHealth;
+        hb.maxHealth = maxHealth;
+
+        health = maxHealth;
         lastPosition = transform.position;
     }
 
@@ -225,6 +233,7 @@ public class MinerEnemy : MonoBehaviour
     public void TakeDamage(float damage)
     {
         health -= damage;
+        hb.health = health;
         if (health <= 0)
         {
             StartCoroutine(EnemyDies());

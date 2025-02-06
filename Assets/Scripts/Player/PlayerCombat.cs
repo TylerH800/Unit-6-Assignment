@@ -11,7 +11,9 @@ public class PlayerCombat : MonoBehaviour
     private PlayerInput playerInput;
     private bool attacking;
 
-    public float health;
+    public float health, maxHealth;
+    public GameObject healthBarGO;
+    private Healthbar hb;
     public float lightDmg, heavyDmg;
     public float lightAttackRange, heavyAttackRange;
     public float slamJumpHeight;
@@ -26,6 +28,10 @@ public class PlayerCombat : MonoBehaviour
         anim = GetComponent<Animator>();
         tpm = GetComponent<ThirdPersonMovement>();
         playerInput = GetComponent<PlayerInput>();
+        
+        hb = healthBarGO.GetComponent<Healthbar>();
+        hb.health = maxHealth;
+        health = maxHealth;
     }
 
     void OnAttack()
@@ -102,8 +108,10 @@ public class PlayerCombat : MonoBehaviour
 
     public void TakeDamage(float damage)
     {
-        health -= damage;
-
+        health -= damage;      
+        
+        //changes healthbar
+        hb.health = health;
         //if health reaches zero, start the game over process
         if (health <= 0)
         {
