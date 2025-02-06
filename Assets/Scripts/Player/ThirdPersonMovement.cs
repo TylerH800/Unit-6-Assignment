@@ -159,6 +159,7 @@ public class ThirdPersonMovement : MonoBehaviour
         else if (!isGrounded && vertVelocity.y < 5 && playerState == PlayerState.attacking)
         {
             animator.SetBool("SlamAttack", true);
+            gravity = -30f;
         }
 
         //conditions to stop the jumping bool
@@ -171,7 +172,8 @@ public class ThirdPersonMovement : MonoBehaviour
         
         //conditions to stop the falling bool
         if (isGrounded)
-        {            
+        {
+            gravity = -20f;
             animator.SetBool("Fall", false);           
             isFalling = false;
             animator.SetBool("SlamAttack", false);
