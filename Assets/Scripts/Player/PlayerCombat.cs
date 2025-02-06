@@ -46,7 +46,7 @@ public class PlayerCombat : MonoBehaviour
     void OnSlamAttack()
     {
         print("slam");
-        if (!tpm.isGrounded || tpm.isJumping || attacking)
+        if (!tpm.isGrounded || tpm.isJumping || attacking || ThirdPersonMovement.playerState != PlayerState.moving)
         {
             return;
         }
@@ -57,7 +57,12 @@ public class PlayerCombat : MonoBehaviour
     }
 
     void LightAttack()
-    {        
+    {  
+        if (ThirdPersonMovement.playerState != PlayerState.moving)
+        {
+            return;
+        }
+      
         attacking = true;
         ThirdPersonMovement.playerState = PlayerState.attacking;
 
@@ -98,7 +103,7 @@ public class PlayerCombat : MonoBehaviour
     }
     
     void EndAttackAnim()
-    {
+    {      
         anim.SetInteger("LightAttack", 0);        
         //anim.SetBool("Jump", false);
         
@@ -134,10 +139,12 @@ public class PlayerCombat : MonoBehaviour
     }
 
     IEnumerator GameOver()
-    {
+    {      
+        ThirdPersonMovement.playerState = PlayerState.dying;
+        anim.SetInteger("LightAttack", 0);
         anim.SetTrigger("Dying");
         yield return new WaitForSeconds(deathAnimTime);
-        //display game over
+        //display game over       
     }
 
     void OnDrawGizmosSelected()

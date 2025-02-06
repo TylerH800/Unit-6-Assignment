@@ -5,7 +5,8 @@ using UnityEngine.InputSystem;
 public enum PlayerState
 {
     moving, //default
-    attacking
+    attacking,
+    dying
 }
 
 public class ThirdPersonMovement : MonoBehaviour
@@ -76,6 +77,7 @@ public class ThirdPersonMovement : MonoBehaviour
             HorizontalMovement();
             GetSprint();
         }
+        
     }
 
 
