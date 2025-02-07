@@ -2537,10 +2537,12 @@ MonoBehaviour:
   health: 0
   maxHealth: 100
   healthBarGO: {fileID: 1587040172}
-  lightDmg: 50
+  lightDmg: 20
   heavyDmg: 100
   lightAttackRange: 2
   heavyAttackRange: 4.5
+  lightAttackCooldown: 3
+  heavyAttackCooldown: 6
   slamJumpHeight: 9
   lightAttackPoint: {fileID: 1255065878}
   heavyAttackPoint: {fileID: 1865977010}

@@ -16,6 +16,8 @@ public class PlayerCombat : MonoBehaviour
     private Healthbar hb;
     public float lightDmg, heavyDmg;
     public float lightAttackRange, heavyAttackRange;
+    public float lightAttackCooldown, heavyAttackCooldown;
+    private bool canLightAttack, canHeavyAttack;
     public float slamJumpHeight;
     public Transform lightAttackPoint;
     public Transform heavyAttackPoint;
@@ -32,12 +34,17 @@ public class PlayerCombat : MonoBehaviour
         hb = healthBarGO.GetComponent<Healthbar>();
         hb.health = maxHealth;
         health = maxHealth;
+      
+        canLightAttack = true;
+        canHeavyAttack = true;
+
     }
+
 
     void OnAttack()
     {
         //conditions to do light melee attack
-        if (!tpm.isJumping && !attacking && !tpm.isFalling)
+        if (!tpm.isJumping && !attacking && !tpm.isFalling && canLightAttack)
         {
             LightAttack();
         }        
@@ -46,7 +53,7 @@ public class PlayerCombat : MonoBehaviour
     void OnSlamAttack()
     {
         print("slam");
-        if (!tpm.isGrounded || tpm.isJumping || attacking || ThirdPersonMovement.playerState != PlayerState.moving)
+        if (!tpm.isGrounded || tpm.isJumping || attacking || ThirdPersonMovement.playerState != PlayerState.moving || !canHeavyAttack)
         {
             return;
         }
@@ -54,6 +61,9 @@ public class PlayerCombat : MonoBehaviour
         anim.SetBool("Jump", true);
         ThirdPersonMovement.playerState = PlayerState.attacking;
         attacking = true;
+
+        canHeavyAttack = false;
+        StartCoroutine(AttackCooldown(heavyAttackCooldown, "HeavyAttack"));
     }
 
     void LightAttack()
@@ -72,14 +82,17 @@ public class PlayerCombat : MonoBehaviour
         {
             case 0:
                 anim.SetInteger("LightAttack", 1);
-                return;
+                break;
             case 1:
                 anim.SetInteger("LightAttack", 2);
-                return;
+                break;
             case 2:
                 anim.SetInteger("LightAttack", 3);
-                return;
+                break;
         }
+
+        canLightAttack = false;
+        StartCoroutine(AttackCooldown(lightAttackCooldown, "LightAttack"));
     }
 
     void ExecuteLightAttack()
@@ -99,6 +112,19 @@ public class PlayerCombat : MonoBehaviour
         {
             hit.gameObject.GetComponent<MinerEnemy>().TakeDamage(heavyDmg);
 
+        }
+    }
+
+    IEnumerator AttackCooldown(float time, string attackName)
+    {
+        yield return new WaitForSeconds(time);
+        if (attackName == "LightAttack")
+        {
+            canLightAttack = true;
+        }
+        else if (attackName == "HeavyAttack")
+        {
+            canHeavyAttack = true;
         }
     }
     
@@ -130,10 +156,10 @@ public class PlayerCombat : MonoBehaviour
             {
                 case 0:
                     anim.SetInteger("Hit", 1);
-                    return;
+                    break;
                 case 1:
                     anim.SetInteger("Hit", 2);
-                    return;
+                    break;
             }
         }
     }

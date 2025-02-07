@@ -156,18 +156,16 @@ MonoBehaviour:
   health: 0
   maxHealth: 100
   healthBarGO: {fileID: 8730864996305995912}
-  attackDamage: 100
-  attackCooldown: 1
+  attackDamage: 15
+  attackCooldown: 0.5
   attackPosition: {fileID: 4915225325215798067}
   attackHitRange: 1.5
-  deathAnimTime: 0
   patrolSpeed: 5
   chaseSpeed: 12
   walkPointRange: 20
   minWaitTime: 3
   maxWaitTime: 5
-  playerFindDistance: 201.3
-  hearRange: 10
+  playerFindDistance: 200
   whatIsGround:
     serializedVersion: 2
     m_Bits: 64

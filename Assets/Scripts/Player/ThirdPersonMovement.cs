@@ -5,6 +5,8 @@ using UnityEngine.InputSystem;
 public enum PlayerState
 {
     moving, //default
+    jumping,
+    falling,
     attacking,
     dying
 }
@@ -72,12 +74,11 @@ public class ThirdPersonMovement : MonoBehaviour
     {
         VerticalMovement();
 
-        if (playerState == PlayerState.moving)
+        if (playerState == PlayerState.moving || playerState == PlayerState.jumping)
         {            
             HorizontalMovement();
             GetSprint();
-        }
-        
+        }        
     }
 
 

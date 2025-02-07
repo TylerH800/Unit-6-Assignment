@@ -1,4 +1,5 @@
 using System.Collections;
+using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -11,12 +12,14 @@ public class MinerEnemy : MonoBehaviour
         waiting,
         chasing,
         attacking,
+        hit,
         dying
     }
 
     //references
     private Animator anim;
     private Rigidbody rb;
+    private BoxCollider bc;
     private State state;
     private GameObject player;
 
@@ -26,14 +29,11 @@ public class MinerEnemy : MonoBehaviour
     public GameObject healthBarGO;
     private Healthbar hb;
 
-    private float attackDistance = 5;
     public float attackDamage;
     private bool canAttack = true;
     public float attackCooldown = 1.5f;
     public Transform attackPosition;
     public float attackHitRange = 1.5f;
-    public float deathAnimTime;
-    
 
 
     [Header("AI")]
@@ -44,7 +44,7 @@ public class MinerEnemy : MonoBehaviour
     public float minWaitTime, maxWaitTime;
     private Vector3 walkPoint;
 
-    public float playerFindDistance, hearRange;
+    public float playerFindDistance;
 
     public LayerMask whatIsGround, whatIsPlayer;
 
@@ -52,13 +52,14 @@ public class MinerEnemy : MonoBehaviour
     Vector3 lastPosition;
     private float currentSpeed;
 
-    
+
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         anim = GetComponent<Animator>();
         rb = GetComponent<Rigidbody>();
+        bc = GetComponent<BoxCollider>();
         agent = GetComponent<NavMeshAgent>();
         player = GameObject.Find("Player");
 
@@ -83,7 +84,7 @@ public class MinerEnemy : MonoBehaviour
         lastPosition = transform.position;
 
         //print(currentSpeed);        
-        anim.SetFloat("Velocity", currentSpeed);        
+        anim.SetFloat("Velocity", currentSpeed);
     }
 
     void StateFinder()
@@ -94,36 +95,39 @@ public class MinerEnemy : MonoBehaviour
             LookForPlayer();
         }
 
-        //if the player is within attack range, attack them
-        if (Physics.CheckSphere(transform.position, attackDistance, whatIsPlayer))
-        {
-            state = State.attacking;            
-        }
-        
         switch (state)
         {
             case State.patrolling:
                 Patrolling();
-                return;
+                break;
 
             case State.chasing:
                 Chasing();
-                return;
+                break;
 
             case State.attacking:
                 Attacking();
-                return;
+                break;
         }
 
-    }    
+    }
 
+    #region Movement and player finding
     void Patrolling()
     {
         agent.speed = patrolSpeed;
-        
+
         if (!walkPointSet)
         {
-            agent.SetDestination(RandomNavmeshLocation(walkPointRange));
+            
+            if (RandomNavmeshLocation(walkPointRange)) //returns true if a point on the navmesh is found
+            {
+                agent.SetDestination(walkPoint);
+            }
+            else
+            {
+                return; //prevents waiting from happening over and over if a new walkpoint isnt set
+            }                
         }
 
         //if the enemy is at the walkpoint, begin waiting
@@ -145,27 +149,26 @@ public class MinerEnemy : MonoBehaviour
             walkPointSet = false;
             state = State.patrolling;
         }
-        
     }
 
-    
-    public Vector3 RandomNavmeshLocation(float radius)
+    bool RandomNavmeshLocation(float radius)
     {
         //generates random position and adds current position on to it
-        Vector3 randomDirection = Random.insideUnitSphere * radius;
-        randomDirection += transform.position;
+        Vector3 randomPosition = Random.insideUnitSphere * radius;
+        randomPosition += transform.position;
 
-        //if the point is on the navmesh, set it to the walkpoint
-        //if not, find the closest point on the navmesh
         NavMeshHit hit;
-        Vector3 finalPosition = Vector3.zero;
-        if (NavMesh.SamplePosition(randomDirection, out hit, radius, 1))
+        if (NavMesh.SamplePosition(randomPosition, out hit, 1, NavMesh.AllAreas))
         {
-            finalPosition = hit.position;
-        }
-        walkPointSet = true;
-        walkPoint = finalPosition;
-        return finalPosition;
+            //if the random point is on the nav mesh, the walk point is set to it
+            walkPoint = hit.position;
+            walkPointSet = true;
+            
+            return true;
+        }        
+        return false;   
+
+        //this whole walk point system could probably be done in less code but it works well for my project
     }
 
     void LookForPlayer()
@@ -173,15 +176,10 @@ public class MinerEnemy : MonoBehaviour
         Vector3 offset = new Vector3(0, 1, 0);
         RaycastHit hit;
 
-        //if the player is within range, or is directly in front of the ai, it will begin to chase the player
+        //if the player is directly in front of the ai, it will begin to chase the player (also if it gets hit)
         if (Physics.Raycast(transform.position + offset, this.transform.forward, out hit, playerFindDistance, whatIsPlayer))
-        {           
-            state = State.chasing;            
-        }
-
-        if (Physics.CheckSphere(transform.position, hearRange, whatIsPlayer))
-        {            
-            state = State.chasing;   
+        {
+            state = State.chasing;
         }
     }
 
@@ -189,18 +187,27 @@ public class MinerEnemy : MonoBehaviour
     {
         agent.speed = chaseSpeed;
         agent.SetDestination(player.transform.position);
+
+        //if the player is within attack range, attack them
+        if (Physics.CheckSphere(transform.position, attackHitRange - 0.2f, whatIsPlayer))
+        {
+            state = State.attacking;
+        }
     }
 
+    #endregion
+
+    #region Combat
     void Attacking() //method called to perform and loop attacks
     {
         agent.SetDestination(transform.position);
 
         if (canAttack) //if not currently attacking or in cooldown, start attack animation
         {
-            anim.SetInteger("Attacking", 1); 
+            anim.SetInteger("Attacking", 1);
             //integers are used as I had multiple attacks with multiple methods before,
             //so I used different integers for different attacks, similar to the death animations
-            
+
             canAttack = false;
         }
     }
@@ -216,12 +223,12 @@ public class MinerEnemy : MonoBehaviour
     }
 
     void EndAttack() //called via an event at the end of each attack animation
-    {        
+    {
         //stops attack anim, starts cooldown and sets ai back to chasing
-        anim.SetInteger("Attacking", 0);             
+        anim.SetInteger("Attacking", 0);
         StartCoroutine(AttackCooldown(attackCooldown));
 
-        state = State.chasing;     
+        state = State.chasing;
     }
 
     IEnumerator AttackCooldown(float seconds)
@@ -236,36 +243,52 @@ public class MinerEnemy : MonoBehaviour
         hb.health = health;
         if (health <= 0)
         {
-            StartCoroutine(EnemyDies());
+            EnemyDies();
         }
         else
         {
             anim.SetTrigger("Hit");
+            anim.SetInteger("Attacking", 0);
+
+            state = State.hit; //state used to prevent the chasing method from attacking again
+            print(state);
+
         }
     }
 
-    IEnumerator EnemyDies()
+    void EndHitAnim() //called at end of hit anim to allow chasing and attacking
     {
+        state = State.chasing;
+    }
+
+    void EnemyDies()
+    {
+        state = State.dying;
+        bc.isTrigger = true; //used incase the player is on top of them
         int index = Random.Range(0, 2);
-        if (index == 1)
+        print(index);
+        if (index == 0)
         {
             anim.SetInteger("Dying", 1);
         }
-        if (index == 2)
+        if (index == 1)
         {
             anim.SetInteger("Dying", 2);
         }
-        yield return new WaitForSeconds(deathAnimTime);
+    }
+
+    void Despawn() //called at end of death anims
+    {
         Destroy(gameObject);
     }
 
+    #endregion
 
     private void OnDrawGizmosSelected()
     {
-        
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(transform.position, hearRange);
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(attackPosition.position, attackHitRange);
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(attackPosition.position, attackHitRange - 0.2f);
     }
 }
