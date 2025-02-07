@@ -2,26 +2,36 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 public class PlayerCombat : MonoBehaviour
 {
+    //references
     private PlayerState playerState;
     private Animator anim;
     private ThirdPersonMovement tpm;
     private PlayerInput playerInput;
     private bool attacking;
 
+    [Header("Health")]
     public float health, maxHealth;
     public GameObject healthBarGO;
     private Healthbar hb;
+
+    [Header("Damage and Range")]
     public float lightDmg, heavyDmg;
     public float lightAttackRange, heavyAttackRange;
-    public float lightAttackCooldown, heavyAttackCooldown;
-    private bool canLightAttack, canHeavyAttack;
     public float slamJumpHeight;
     public Transform lightAttackPoint;
     public Transform heavyAttackPoint;
     public LayerMask whatIsEnemy;
+
+    [Header("Cooldowns")]
+    public Slider lightCD;
+    public Slider heavyCD;
+    public float lightAttackCooldown, heavyAttackCooldown;
+    private float lightCurrent, heavyCurrent;
+    private bool canLightAttack, canHeavyAttack;
     public float deathAnimTime;
 
 
@@ -40,6 +50,17 @@ public class PlayerCombat : MonoBehaviour
 
     }
 
+    private void Update()
+    {
+        if (!canLightAttack)
+        {
+            LightCooldown();
+        }
+        if (!canHeavyAttack)
+        {
+            HeavyCooldown();
+        }
+    }
 
     void OnAttack()
     {
@@ -63,7 +84,7 @@ public class PlayerCombat : MonoBehaviour
         attacking = true;
 
         canHeavyAttack = false;
-        StartCoroutine(AttackCooldown(heavyAttackCooldown, "HeavyAttack"));
+        heavyCurrent = 0;
     }
 
     void LightAttack()
@@ -92,7 +113,7 @@ public class PlayerCombat : MonoBehaviour
         }
 
         canLightAttack = false;
-        StartCoroutine(AttackCooldown(lightAttackCooldown, "LightAttack"));
+        lightCurrent = 0;
     }
 
     void ExecuteLightAttack()
@@ -115,19 +136,28 @@ public class PlayerCombat : MonoBehaviour
         }
     }
 
-    IEnumerator AttackCooldown(float time, string attackName)
+    void LightCooldown()
     {
-        yield return new WaitForSeconds(time);
-        if (attackName == "LightAttack")
+        lightCurrent = Mathf.Clamp(lightCurrent + Time.deltaTime, 0, lightAttackCooldown);
+        if (lightCurrent == lightAttackCooldown)
         {
             canLightAttack = true;
         }
-        else if (attackName == "HeavyAttack")
+
+        lightCD.value = lightCurrent / lightAttackCooldown;
+    }
+
+    void HeavyCooldown()
+    {
+        heavyCurrent = Mathf.Clamp(heavyCurrent + Time.deltaTime, 0, heavyAttackCooldown);
+        if (heavyCurrent == heavyAttackCooldown)
         {
             canHeavyAttack = true;
         }
+
+        heavyCD.value = heavyCurrent / heavyAttackCooldown;
     }
-    
+
     void EndAttackAnim()
     {      
         anim.SetInteger("LightAttack", 0);        
