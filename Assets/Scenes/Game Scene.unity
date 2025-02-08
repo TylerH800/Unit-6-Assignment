@@ -3360,7 +3360,7 @@ MonoBehaviour:
     m_Bits: 128
   lightCD: {fileID: 1860525378}
   heavyCD: {fileID: 613676713}
-  lightAttackCooldown: 3
+  lightAttackCooldown: 1.75
   heavyAttackCooldown: 6
   deathAnimTime: 0
 --- !u!114 &1303225895
@@ -5759,6 +5759,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 57466293066533816, guid: 86c351775aef6214884c0baddc6468f2, type: 3}
+      propertyPath: chaseSpeed
+      value: 10
+      objectReference: {fileID: 0}
     - target: {fileID: 1592103215809600488, guid: 86c351775aef6214884c0baddc6468f2, type: 3}
       propertyPath: m_AnchorMax.x
       value: 0
@@ -5814,6 +5818,18 @@ PrefabInstance:
     - target: {fileID: 6634443037498742335, guid: 86c351775aef6214884c0baddc6468f2, type: 3}
       propertyPath: m_AnchorMax.y
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7491164980117595990, guid: 86c351775aef6214884c0baddc6468f2, type: 3}
+      propertyPath: m_Size.y
+      value: 9.90064
+      objectReference: {fileID: 0}
+    - target: {fileID: 7491164980117595990, guid: 86c351775aef6214884c0baddc6468f2, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7491164980117595990, guid: 86c351775aef6214884c0baddc6468f2, type: 3}
+      propertyPath: m_Center.y
+      value: 5.1953053
       objectReference: {fileID: 0}
     - target: {fileID: 9100590934151326542, guid: 86c351775aef6214884c0baddc6468f2, type: 3}
       propertyPath: m_Name

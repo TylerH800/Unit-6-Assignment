@@ -32,7 +32,7 @@ public class ThirdPersonMovement : MonoBehaviour
 
     [Header("Jumping and Gravity")]
 
-    public bool isFalling, isJumping, isGrounded;
+    [HideInInspector] public bool isFalling, isJumping, isGrounded;
 
     public float jumpHeight;
     public float gravity = -9.81f;

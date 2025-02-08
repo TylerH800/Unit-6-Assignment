@@ -194,6 +194,11 @@ public class PlayerCombat : MonoBehaviour
         }
     }
 
+    void EndHitAnim()
+    {
+        anim.SetInteger("Hit", 0);
+    }
+
     IEnumerator GameOver()
     {      
         ThirdPersonMovement.playerState = PlayerState.dying;
