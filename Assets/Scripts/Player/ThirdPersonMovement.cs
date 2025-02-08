@@ -32,7 +32,7 @@ public class ThirdPersonMovement : MonoBehaviour
 
     [Header("Jumping and Gravity")]
 
-    [HideInInspector] public bool isFalling, isJumping, isGrounded;
+    [HideInInspector] public bool isFalling, isJumping, isGrounded, isOnSlope;
 
     public float jumpHeight;
     public float gravity = -9.81f;
@@ -40,6 +40,7 @@ public class ThirdPersonMovement : MonoBehaviour
     public Transform groundCheck;
     public float groundDistance;
     public LayerMask groundMask;
+    public LayerMask slopeMask;
 
     private PlayerInput playerInput;
     private Vector2 input;
@@ -78,7 +79,9 @@ public class ThirdPersonMovement : MonoBehaviour
         {            
             HorizontalMovement();
             GetSprint();
-        }        
+        }
+
+        print(isGrounded);
     }
 
 
@@ -138,7 +141,9 @@ public class ThirdPersonMovement : MonoBehaviour
     void VerticalMovement()
     {    
         // Ground check
+        
         isGrounded = Physics.CheckSphere(groundCheck.position, groundDistance, groundMask);
+        isOnSlope = Physics.Raycast(groundCheck.position, Vector3.down, groundDistance * 3, slopeMask);
 
         //gravity
         vertVelocity.y += gravity * Time.deltaTime;
@@ -151,7 +156,7 @@ public class ThirdPersonMovement : MonoBehaviour
         }
      
         // Conditions for falling
-        if (!isGrounded && vertVelocity.y < 5 && playerState != PlayerState.attacking)
+        if (!isGrounded && vertVelocity.y < 5 && playerState != PlayerState.attacking && !isOnSlope)
         {            
             //if you are in the attacking state whilst jumping that means you are doing the slam attack,
             //so this prevents the fall animation from playing in that scenario

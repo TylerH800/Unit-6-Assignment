@@ -1,5 +1,4 @@
 using System.Collections;
-using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -42,9 +41,8 @@ public class MinerEnemy : MonoBehaviour
     private bool walkPointSet;
     public float walkPointRange;
     public float minWaitTime, maxWaitTime;
+    public float playerFindDistance, aggroDistance;
     private Vector3 walkPoint;
-
-    public float playerFindDistance;
 
     public LayerMask whatIsGround, whatIsPlayer;
 
@@ -56,7 +54,7 @@ public class MinerEnemy : MonoBehaviour
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
-    {
+    {       
         anim = GetComponent<Animator>();
         rb = GetComponent<Rigidbody>();
         bc = GetComponent<BoxCollider>();
@@ -115,25 +113,23 @@ public class MinerEnemy : MonoBehaviour
     #region Movement and player finding
     void Patrolling()
     {
+       
         agent.speed = patrolSpeed;
 
-        if (!walkPointSet)
+        if (agent.remainingDistance <= agent.stoppingDistance) //done with path
         {
-            
-            if (RandomNavmeshLocation(walkPointRange)) //returns true if a point on the navmesh is found
+            Vector3 point;
+            if (RandomNavmeshLocation(walkPointRange, out point)) //pass in our centre point and radius of area
             {
-                agent.SetDestination(walkPoint);
+                Debug.DrawRay(point, Vector3.up, Color.blue, 1.0f); //so you can see with gizmos
+                agent.SetDestination(point);
             }
-            else
-            {
-                return; //prevents waiting from happening over and over if a new walkpoint isnt set
-            }                
         }
 
         //if the enemy is at the walkpoint, begin waiting
         Vector3 distanceToWalkpoint = transform.position - walkPoint;
 
-        if (distanceToWalkpoint.magnitude < 1f)
+        if (distanceToWalkpoint.magnitude < 3f)
         {
             state = State.waiting;
             float waitTime = Random.Range(minWaitTime, maxWaitTime);
@@ -148,28 +144,25 @@ public class MinerEnemy : MonoBehaviour
         {
             walkPointSet = false;
             state = State.patrolling;
+            print("waiting");
         }
     }
 
-    bool RandomNavmeshLocation(float radius)
+    bool RandomNavmeshLocation(float radius, out Vector3 result)
     {
-        //generates random position and adds current position on to it
-        Vector3 randomPosition = Random.insideUnitSphere * radius;
-        randomPosition += transform.position;
-
+        Vector3 randomPoint = transform.position + Random.insideUnitSphere * radius; //random point in a sphere 
         NavMeshHit hit;
-        if (NavMesh.SamplePosition(randomPosition, out hit, 1, NavMesh.AllAreas))
+        if (NavMesh.SamplePosition(randomPoint, out hit, 1.0f, NavMesh.AllAreas)) //documentation: https://docs.unity3d.com/ScriptReference/AI.NavMesh.SamplePosition.html
         {
-            //if the random point is on the nav mesh, the walk point is set to it
-            walkPoint = hit.position;
-            walkPointSet = true;
-            
+            //the 1.0f is the max distance from the random point to a point on the navmesh, might want to increase if range is big
+            //or add a for loop like in the documentation
+            result = hit.position;
             return true;
-        }        
-        return false;   
-
-        //this whole walk point system could probably be done in less code but it works well for my project
+        }
+        result = Vector3.zero;
+        return false;
     }
+
 
     void LookForPlayer()
     {
@@ -178,6 +171,11 @@ public class MinerEnemy : MonoBehaviour
 
         //if the player is directly in front of the ai, it will begin to chase the player (also if it gets hit)
         if (Physics.Raycast(transform.position + offset, this.transform.forward, out hit, playerFindDistance, whatIsPlayer))
+        {
+            state = State.chasing;
+        }
+
+        if (Physics.CheckSphere(transform.position, aggroDistance, whatIsPlayer))
         {
             state = State.chasing;
         }
