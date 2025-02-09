@@ -10,6 +10,7 @@ public class EnemyInfo : MonoBehaviour
 
 
     public string enemyName;
+    [HideInInspector] public int level;
     public TextMeshProUGUI enemyNameText;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -17,8 +18,10 @@ public class EnemyInfo : MonoBehaviour
     {
         player = GameObject.Find("Player");
         cam = GameObject.Find("Camera");
-        enemyNameText.text = enemyName;
+
+        enemyNameText.text = "Lvl." + level + " " + enemyName;
     }
+
 
     void LateUpdate()
     {
@@ -27,7 +30,7 @@ public class EnemyInfo : MonoBehaviour
 
     private void Update()
     {
-        float distance = (transform.position -player.transform.position).magnitude;
+        float distance = (transform.position - player.transform.position).magnitude;
         if (distance <= viewDistance)
         {
             parent.SetActive(true);     

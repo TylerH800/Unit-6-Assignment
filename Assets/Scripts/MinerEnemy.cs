@@ -24,6 +24,7 @@ public class MinerEnemy : MonoBehaviour
 
 
     [Header("Combat")]
+    public int level;
     public float health, maxHealth;
     public GameObject healthBarGO;
     private Healthbar hb;
@@ -59,14 +60,25 @@ public class MinerEnemy : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         bc = GetComponent<BoxCollider>();
         agent = GetComponent<NavMeshAgent>();
+        hb = healthBarGO.GetComponent<Healthbar>();
+
         player = GameObject.Find("Player");
 
-        hb = healthBarGO.GetComponent<Healthbar>();
+        //level is determined at the start of each wave
+        level = WaveManager.enemyLevel;
+        attackDamage += (level * 5) - 5; //+5 damage for each level
+        maxHealth += (level * 10) - 10; //+10 health for each level
+
+        //this enemy's healthbar settings/variables
         hb.health = maxHealth;
         hb.maxHealth = maxHealth;
 
         health = maxHealth;
+
+        //used for calculating velocity for blend tree
         lastPosition = transform.position;
+
+
     }
 
     // Update is called once per frame
@@ -277,6 +289,7 @@ public class MinerEnemy : MonoBehaviour
 
     void Despawn() //called at end of death anims
     {
+        WaveManager.enemiesLeft--;
         Destroy(gameObject);
     }
 
