@@ -14,9 +14,9 @@ public class PlayerCombat : MonoBehaviour
     private bool attacking;
 
     [Header("Health")]
-    public float health, maxHealth;
-    public GameObject healthBarGO;
+    public float health, maxHealth;   
     private Healthbar hb;
+    private WaveManager waveManager;
 
     [Header("Damage and Range")]
     public float lightDmg, heavyDmg;
@@ -41,13 +41,13 @@ public class PlayerCombat : MonoBehaviour
         tpm = GetComponent<ThirdPersonMovement>();
         playerInput = GetComponent<PlayerInput>();
         
-        hb = healthBarGO.GetComponent<Healthbar>();
+        hb = GameObject.Find("PlayerHealthBar").GetComponent<Healthbar>();
+        waveManager = GameObject.Find("WaveManager").GetComponent<WaveManager>();
         hb.health = maxHealth;
         health = maxHealth;
       
         canLightAttack = true;
         canHeavyAttack = true;
-
     }
 
     private void Update()
@@ -60,6 +60,7 @@ public class PlayerCombat : MonoBehaviour
         {
             HeavyCooldown();
         }
+
     }
 
     void OnAttack()
@@ -74,6 +75,7 @@ public class PlayerCombat : MonoBehaviour
     void OnSlamAttack()
     {
         print("slam");
+        //conditions
         if (!tpm.isGrounded || tpm.isJumping || attacking || ThirdPersonMovement.playerState != PlayerState.moving || !canHeavyAttack)
         {
             return;
@@ -84,7 +86,7 @@ public class PlayerCombat : MonoBehaviour
         attacking = true;
 
         canHeavyAttack = false;
-        heavyCurrent = 0;
+        heavyCurrent = 0;  //cooldown time
     }
 
     void LightAttack()
@@ -113,7 +115,7 @@ public class PlayerCombat : MonoBehaviour
         }
 
         canLightAttack = false;
-        lightCurrent = 0;
+        lightCurrent = 0; //cooldown
     }
 
     void ExecuteLightAttack()
@@ -132,7 +134,7 @@ public class PlayerCombat : MonoBehaviour
         foreach (Collider hit in hits)
         {
             hit.gameObject.GetComponent<MinerEnemy>().TakeDamage(heavyDmg);
-
+            Vector3 dir = new Vector3(hit.transform.position.x, 0, hit.transform.position.z); 
         }
     }
 
@@ -144,7 +146,7 @@ public class PlayerCombat : MonoBehaviour
             canLightAttack = true;
         }
 
-        lightCD.value = lightCurrent / lightAttackCooldown;
+        lightCD.value = lightCurrent / lightAttackCooldown; //ui slider
     }
 
     void HeavyCooldown()
@@ -160,23 +162,21 @@ public class PlayerCombat : MonoBehaviour
 
     void EndAttackAnim()
     {      
-        anim.SetInteger("LightAttack", 0);        
-        //anim.SetBool("Jump", false);
-        
+        anim.SetInteger("LightAttack", 0);                      
         attacking = false;
         ThirdPersonMovement.playerState = PlayerState.moving;
     }
 
     public void TakeDamage(float damage)
     {
-        health -= damage;      
+        health = Mathf.Clamp(health - damage, 0, maxHealth);  //stops health exceeding max health or going below zero 
         
         //changes healthbar
         hb.health = health;
         //if health reaches zero, start the game over process
         if (health <= 0)
         {
-            StartCoroutine(GameOver());
+            GameOver();
         }
         else
         {
@@ -196,17 +196,21 @@ public class PlayerCombat : MonoBehaviour
 
     void EndHitAnim()
     {
-        anim.SetInteger("Hit", 0);
+        anim.SetInteger("Hit", 0); //stops the anim repeating
     }
 
-    IEnumerator GameOver()
+    void GameOver()
     {      
         ThirdPersonMovement.playerState = PlayerState.dying;
-        anim.SetInteger("LightAttack", 0);
-        anim.SetTrigger("Dying");
-        yield return new WaitForSeconds(deathAnimTime);
-        //display game over       
+        anim.SetInteger("LightAttack", 0); //incase you die whilst attacking
+        anim.SetTrigger("Dying");     
     }
+
+    void DisplayGameOver()
+    {      
+        waveManager.DisplayGameOver();
+    }
+
 
     void OnDrawGizmosSelected()
     {

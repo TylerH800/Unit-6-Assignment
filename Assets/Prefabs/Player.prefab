@@ -283,13 +283,17 @@ MonoBehaviour:
   isFalling: 0
   isJumping: 0
   isGrounded: 0
+  isOnSlope: 0
   jumpHeight: 9
   gravity: -20
   groundCheck: {fileID: 8853816809023640304}
   groundDistance: 0.5
   groundMask:
     serializedVersion: 2
-    m_Bits: 64
+    m_Bits: 576
+  slopeMask:
+    serializedVersion: 2
+    m_Bits: 512
 --- !u!143 &3380609679049317389
 CharacterController:
   m_ObjectHideFlags: 0
@@ -311,7 +315,7 @@ CharacterController:
   m_Height: 4.26
   m_Radius: 1.08
   m_SlopeLimit: 45
-  m_StepOffset: 0.3
+  m_StepOffset: 2
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0.2}
@@ -330,8 +334,8 @@ MonoBehaviour:
   health: 0
   maxHealth: 100
   healthBarGO: {fileID: 0}
-  lightDmg: 20
-  heavyDmg: 100
+  lightDmg: 70
+  heavyDmg: 130
   lightAttackRange: 2
   heavyAttackRange: 4.5
   slamJumpHeight: 9
@@ -343,7 +347,7 @@ MonoBehaviour:
   lightCD: {fileID: 0}
   heavyCD: {fileID: 0}
   lightAttackCooldown: 1.75
-  heavyAttackCooldown: 6
+  heavyAttackCooldown: 9
   deathAnimTime: 0
 --- !u!114 &8437184035764361142
 MonoBehaviour:
@@ -385,15 +389,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 352623e83614dce4fbad55ce3d28080a, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.5
+      value: 0.6
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 352623e83614dce4fbad55ce3d28080a, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.5
+      value: 0.6
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 352623e83614dce4fbad55ce3d28080a, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.5
+      value: 0.6
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 352623e83614dce4fbad55ce3d28080a, type: 3}
       propertyPath: m_LocalPosition.x

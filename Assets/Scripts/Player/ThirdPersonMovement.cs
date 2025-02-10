@@ -27,7 +27,7 @@ public class ThirdPersonMovement : MonoBehaviour
     private bool sprinting;
 
     private Animator animator;
-    private CharacterController cc;
+    [HideInInspector] public CharacterController cc;
     public Transform cam;
 
     [Header("Jumping and Gravity")]
@@ -81,7 +81,6 @@ public class ThirdPersonMovement : MonoBehaviour
             GetSprint();
         }
 
-        print(isGrounded);
     }
 
 
@@ -116,7 +115,7 @@ public class ThirdPersonMovement : MonoBehaviour
     void GetSprint()
     {
         var sprint = playerInput.actions["Sprint"];
-        if (sprint.IsPressed())
+        if (sprint.IsPressed() && input.magnitude >= 0.5f)
         {
             sprinting = true;
             animator.SetBool("Run", true);

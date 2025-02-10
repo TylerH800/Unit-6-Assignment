@@ -16,9 +16,9 @@ public class Healthbar : MonoBehaviour
 
     void Update()
     {
-        foreach (Slider slider in healthSlider)
+        foreach (Slider slider in healthSlider) //foreach used for double healthbars like the player hb
         {
-            if (slider.value != health)
+            if (slider.value >= health)
             {
                 slider.value = health;
             }
@@ -32,10 +32,11 @@ public class Healthbar : MonoBehaviour
                 slider.value = Mathf.Lerp(slider.value, health, lerpSpeed * Time.deltaTime);
 
                 //stops the lerp taking ages at the end
-                if ((slider.value - health) < 1)
+                if (Mathf.Abs(slider.value - health) < 1)
                 {
+                    print("Snap");
                     slider.value = health;
-                }
+                } 
             }
 
             

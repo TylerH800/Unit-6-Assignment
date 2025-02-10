@@ -25,8 +25,7 @@ public class MinerEnemy : MonoBehaviour
 
     [Header("Combat")]
     public int level;
-    public float health, maxHealth;
-    public GameObject healthBarGO;
+    public float health, maxHealth;    
     private Healthbar hb;
 
     public float attackDamage;
@@ -34,6 +33,8 @@ public class MinerEnemy : MonoBehaviour
     public float attackCooldown = 1.5f;
     public Transform attackPosition;
     public float attackHitRange = 1.5f;
+
+    private WaveManager waveManager;
 
 
     [Header("AI")]
@@ -60,9 +61,10 @@ public class MinerEnemy : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         bc = GetComponent<BoxCollider>();
         agent = GetComponent<NavMeshAgent>();
-        hb = healthBarGO.GetComponent<Healthbar>();
+        hb = GetComponentInChildren<Healthbar>();
 
         player = GameObject.Find("Player");
+        waveManager = GameObject.Find("WaveManager").GetComponent<WaveManager>();
 
         //level is determined at the start of each wave
         level = WaveManager.enemyLevel;
@@ -86,10 +88,12 @@ public class MinerEnemy : MonoBehaviour
     {
         StateFinder();
         Animation();
+
     }
 
     void Animation()
     {
+        //manually finds the velocity as the nav mesh velocity wasn't working properly
         currentSpeed = Mathf.Lerp(currentSpeed, (transform.position - lastPosition).magnitude / Time.deltaTime, 0.75f);
         lastPosition = transform.position;
 
@@ -124,14 +128,13 @@ public class MinerEnemy : MonoBehaviour
 
     #region Movement and player finding
     void Patrolling()
-    {
-       
+    {       
         agent.speed = patrolSpeed;
 
         if (agent.remainingDistance <= agent.stoppingDistance) //done with path
         {
             Vector3 point;
-            if (RandomNavmeshLocation(walkPointRange, out point)) //pass in our centre point and radius of area
+            if (RandomNavmeshLocation(walkPointRange, out point) && agent != null)
             {
                 Debug.DrawRay(point, Vector3.up, Color.blue, 1.0f); //so you can see with gizmos
                 agent.SetDestination(point);
@@ -147,6 +150,9 @@ public class MinerEnemy : MonoBehaviour
             float waitTime = Random.Range(minWaitTime, maxWaitTime);
             StartCoroutine(Wait(waitTime));
         }
+
+        //im aware that both if statements do basically the same thing but merging it didnt work and im not bothered to do it
+        //"if it aint broken dont fix it"
     }
 
     IEnumerator Wait(float seconds) //used when the ai gets to its walk point to give it a short stand still
@@ -156,7 +162,7 @@ public class MinerEnemy : MonoBehaviour
         {
             walkPointSet = false;
             state = State.patrolling;
-            print("waiting");
+          
         }
     }
 
@@ -164,10 +170,10 @@ public class MinerEnemy : MonoBehaviour
     {
         Vector3 randomPoint = transform.position + Random.insideUnitSphere * radius; //random point in a sphere 
         NavMeshHit hit;
-        if (NavMesh.SamplePosition(randomPoint, out hit, 1.0f, NavMesh.AllAreas)) //documentation: https://docs.unity3d.com/ScriptReference/AI.NavMesh.SamplePosition.html
+        if (NavMesh.SamplePosition(randomPoint, out hit, 1.0f, NavMesh.AllAreas))
         {
-            //the 1.0f is the max distance from the random point to a point on the navmesh, might want to increase if range is big
-            //or add a for loop like in the documentation
+            //if the random point is on or close enough to the mesh, the position is returned and destination is set
+            //if not, the destinatin isn't set and it will try again next frame
             result = hit.position;
             return true;
         }
@@ -178,15 +184,27 @@ public class MinerEnemy : MonoBehaviour
 
     void LookForPlayer()
     {
-        Vector3 offset = new Vector3(0, 1, 0);
+        Vector3 offset1 = new Vector3(0.5f, 1, 0);
+        Vector3 offset2 = new Vector3(-0.5f, 1, 0);
+        Vector3 offset3 = new Vector3(0.5f, 1, 0);
         RaycastHit hit;
 
-        //if the player is directly in front of the ai, it will begin to chase the player (also if it gets hit)
-        if (Physics.Raycast(transform.position + offset, this.transform.forward, out hit, playerFindDistance, whatIsPlayer))
+        
+        //three raycasts are done at differnet ofsets so if the player is generally in front of the enemy, it should give chase
+        if (Physics.Raycast(transform.position + offset1, this.transform.forward, out hit, playerFindDistance, whatIsPlayer))
+        {
+            state = State.chasing;
+        }
+        if (Physics.Raycast(transform.position + offset2, this.transform.forward, out hit, playerFindDistance, whatIsPlayer))
+        {
+            state = State.chasing;
+        }
+        if (Physics.Raycast(transform.position + offset3, this.transform.forward, out hit, playerFindDistance, whatIsPlayer))
         {
             state = State.chasing;
         }
 
+        //also if the player is too close
         if (Physics.CheckSphere(transform.position, aggroDistance, whatIsPlayer))
         {
             state = State.chasing;
@@ -196,7 +214,11 @@ public class MinerEnemy : MonoBehaviour
     void Chasing() //chases the player until it reaches them
     {
         agent.speed = chaseSpeed;
-        agent.SetDestination(player.transform.position);
+
+        if (agent != null)
+        {
+            agent.SetDestination(player.transform.position);
+        }
 
         //if the player is within attack range, attack them
         if (Physics.CheckSphere(transform.position, attackHitRange - 0.2f, whatIsPlayer))
@@ -210,7 +232,10 @@ public class MinerEnemy : MonoBehaviour
     #region Combat
     void Attacking() //method called to perform and loop attacks
     {
-        agent.SetDestination(transform.position);
+        if (agent != null)
+        {
+            agent.SetDestination(transform.position);
+        }
 
         if (canAttack) //if not currently attacking or in cooldown, start attack animation
         {
@@ -258,25 +283,27 @@ public class MinerEnemy : MonoBehaviour
         else
         {
             anim.SetTrigger("Hit");
-            anim.SetInteger("Attacking", 0);
+            anim.SetInteger("Attacking", 0); //if hit during the atack animation, it would try and attack straight after
 
             state = State.hit; //state used to prevent the chasing method from attacking again
-            print(state);
+            Invoke("EndHitAnim", 1);
 
         }
+        
     }
 
     void EndHitAnim() //called at end of hit anim to allow chasing and attacking
     {
         state = State.chasing;
+        canAttack = true;
     }
 
     void EnemyDies()
     {
-        state = State.dying;
-        bc.isTrigger = true; //used incase the player is on top of them
+        state = State.dying;       
+
         int index = Random.Range(0, 2);
-        print(index);
+      
         if (index == 0)
         {
             anim.SetInteger("Dying", 1);
@@ -285,11 +312,14 @@ public class MinerEnemy : MonoBehaviour
         {
             anim.SetInteger("Dying", 2);
         }
+
     }
+
 
     void Despawn() //called at end of death anims
     {
         WaveManager.enemiesLeft--;
+        waveManager.UpdateUI();
         Destroy(gameObject);
     }
 
