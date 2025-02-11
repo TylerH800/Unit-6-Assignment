@@ -25,6 +25,7 @@ public class PlayerCombat : MonoBehaviour
     public Transform lightAttackPoint;
     public Transform heavyAttackPoint;
     public LayerMask whatIsEnemy;
+    public ParticleSystem slam;
 
     [Header("Cooldowns")]
     public Slider lightCD;
@@ -136,6 +137,7 @@ public class PlayerCombat : MonoBehaviour
             hit.gameObject.GetComponent<MinerEnemy>().TakeDamage(heavyDmg);
             Vector3 dir = new Vector3(hit.transform.position.x, 0, hit.transform.position.z); 
         }
+        Instantiate(slam, transform.position, Quaternion.identity);
     }
 
     void LightCooldown()
@@ -192,6 +194,11 @@ public class PlayerCombat : MonoBehaviour
                     break;
             }
         }
+    }
+
+    public void GainHealth(float hp)
+    {
+        health = Mathf.Clamp(health + hp, 0, maxHealth);
     }
 
     void EndHitAnim()

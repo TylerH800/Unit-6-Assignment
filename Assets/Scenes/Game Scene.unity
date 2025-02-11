@@ -27751,6 +27751,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3238775206750476130, guid: 4e81f935f50383a4bb9ea9bee1f46f27, type: 3}
+      propertyPath: slam
+      value: 
+      objectReference: {fileID: 2886789436723075926, guid: f77128869c87bd24ab0a46a26434013c, type: 3}
+    - target: {fileID: 3238775206750476130, guid: 4e81f935f50383a4bb9ea9bee1f46f27, type: 3}
       propertyPath: heavyCD
       value: 
       objectReference: {fileID: 613676713}

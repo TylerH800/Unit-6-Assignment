@@ -76,7 +76,7 @@ public class WaveManager : MonoBehaviour
             enemiesToSpawn++;
         }
 
-        playerCombat.TakeDamage(enemyLevel * -baseHeathRegen); //player gains an amount of health based on the enemy level that they will face
+        playerCombat.GainHealth(enemyLevel * baseHeathRegen); //player gains an amount of health based on the enemy level that they will face
 
 
         for (int i = 0; i < enemiesToSpawn; i++)
